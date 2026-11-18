@@ -8,6 +8,8 @@ Photo Pinboard helps with files that have lost their location metadata, includin
 
 [Download for Windows](https://github.com/blissfulsaint/photo-pinboard/releases/latest) · [Usage guide](docs/USAGE.md) · [Report an issue](https://github.com/blissfulsaint/photo-pinboard/issues)
 
+The Windows 1.0.0 download is being prepared. You can run the web app from source in the meantime.
+
 ## What it does
 
 - Browse nested folders with search, previews, batch selection, and individual review.

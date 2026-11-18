@@ -22,7 +22,8 @@ The app version lives in package.json. Keep the root version in package-lock.jso
 - [x] Shared tests (35), native tests (17), and production web build pass for the 1.0.0 source candidate.
 - [ ] Build and verify the final Windows package after the FFprobe source-distribution item is complete.
 - [ ] Verify the final Windows app interactively, including taskbar branding, folder selection, and writes on disposable test files.
-- [ ] Create the public repository and push the approved source commit.
+- [x] Create the public repository and upload the source candidate.
+- [x] Save the unpublished Photo Pinboard 1.0.0 release draft.
 - [ ] Tag the release commit v1.0.0 and publish the named Windows ZIP, checksum, and required third-party source assets with the release notes.
 - [ ] Add a hosted web link to the README and repository About section after deployment.
 
