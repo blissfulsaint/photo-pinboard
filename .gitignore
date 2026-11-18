@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+work/
+vendor/*.exe
+.env
+.env.*
+!.env.example
+*.local
+*.log
+.vercel/
+.DS_Store
+Thumbs.db
+Desktop.ini
