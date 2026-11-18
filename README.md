@@ -78,7 +78,7 @@ npm run dev
 
 Open the local URL printed by Vite. For a production web build, run `npm run build`. Vite writes the static site to `dist/`. Run `npm test` for the shared tests. See the [usage and development guide](docs/USAGE.md) for native video tools, Windows tests, and packaging.
 
-The web and Windows editions share the React UI and metadata logic. `package.json` supplies the release version, and Windows packaging checks it against the web build.
+The web and Windows editions share a strictly typed React/TypeScript UI and metadata library. TypeScript checks also cover the Electron bridge, native file operations, packaging scripts, and tests. Run npm run typecheck to check all three configurations. `package.json` supplies the release version, and Windows packaging checks it against the web build.
 
 ## Hosting the web app
 

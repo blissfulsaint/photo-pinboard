@@ -1,4 +1,4 @@
-export function parseCoordinates(input) {
+export function parseCoordinates(input:string) {
  const raw = input.trim(); let text = raw;
  if (/^https?:/i.test(raw)) {
   let url; try { url = new URL(raw); } catch { throw new Error('That URL is not valid.'); }
@@ -13,4 +13,4 @@ export function parseCoordinates(input) {
  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) throw new Error('Latitude must be −90 to 90; longitude −180 to 180.');
  return {lat,lng};
 }
-export function csvCell(value) { return '"' + String(value ?? '').replaceAll('"', '""') + '"'; }
+export function csvCell(value:unknown) { return '"' + String(value ?? '').replaceAll('"', '""') + '"'; }

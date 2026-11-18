@@ -1,13 +1,17 @@
 
-const fs=require('node:fs/promises'),path=require('node:path'),{createWriteStream}=require('node:fs');
-const asar=require('@electron/asar'),yazl=require('yazl'),{createHash}=require('node:crypto');
+import fs = require('node:fs/promises');
+import path = require('node:path');
+import {createWriteStream} from 'node:fs';
+import * as asar from '@electron/asar';
+import yazl = require('yazl');
+import {createHash} from 'node:crypto';
 const root=path.resolve(__dirname,'..');
-const {brandWindows}=require('./brand-windows.cjs');
-async function exists(file){try{await fs.access(file);return true;}catch{return false;}}
-async function zipFolder(folder,destination){
+import {brandWindows} from './brand-windows.cjs';
+async function exists(file:string){try{await fs.access(file);return true;}catch{return false;}}
+async function zipFolder(folder:string,destination:string){
  const zip=new yazl.ZipFile();
- const walk=async(directory)=>{for(const entry of await fs.readdir(directory,{withFileTypes:true})){const source=path.join(directory,entry.name);if(entry.isDirectory())await walk(source);else zip.addFile(source,path.relative(path.dirname(folder),source).split(path.sep).join('/'));}};
- const finished=new Promise((resolve,reject)=>{zip.outputStream.pipe(createWriteStream(destination)).on('close',resolve).on('error',reject);zip.outputStream.on('error',reject);});
+ const walk=async(directory:string):Promise<void>=>{for(const entry of await fs.readdir(directory,{withFileTypes:true})){const source=path.join(directory,entry.name);if(entry.isDirectory())await walk(source);else zip.addFile(source,path.relative(path.dirname(folder),source).split(path.sep).join('/'));}};
+ const finished=new Promise<void>((resolve,reject)=>{zip.outputStream.pipe(createWriteStream(destination)).on('close',resolve).on('error',reject);zip.outputStream.on('error',reject);});
  await walk(folder);zip.end();await finished;
 }
 async function main(){
@@ -20,7 +24,8 @@ async function main(){
  if(await exists(release))throw new Error('Release already exists; choose a new package version instead of overwriting an existing release.');
  const staging=path.join(root,'work','package-'+version+'-'+Date.now());
  await fs.mkdir(staging,{recursive:true});await fs.mkdir(path.dirname(release),{recursive:true});
- for(const folder of ['dist','desktop','src'])await fs.cp(path.join(root,folder),path.join(staging,folder),{recursive:true,filter:source=>!source.endsWith('.test.js')&&!source.endsWith('.test.cjs')});
+ await fs.cp(path.join(root,'dist'),path.join(staging,'dist'),{recursive:true});
+ for(const folder of ['desktop','src'])await fs.cp(path.join(root,'build',folder),path.join(staging,folder),{recursive:true});
  await fs.mkdir(path.join(staging,'node_modules'),{recursive:true});
  for(const dependency of ['exifr','hash-wasm'])await fs.cp(path.join(root,'node_modules',dependency),path.join(staging,'node_modules',dependency),{recursive:true});
  await fs.writeFile(path.join(staging,'package.json'),JSON.stringify({name:pkg.name,productName:pkg.productName,version,description:pkg.description,type:'module',main:'desktop/main.cjs'}));

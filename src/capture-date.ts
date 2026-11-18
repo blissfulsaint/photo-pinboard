@@ -1,4 +1,5 @@
-export function parseCaptureDate(value,offset) {
+import type {CaptureDate} from "./models.js";
+export function parseCaptureDate(value:string,offset:string):CaptureDate {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value))throw new Error('Enter a valid capture date and time.');
  if(typeof offset!=='string'||!/^[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00)$/.test(offset))throw new Error('Enter a UTC offset in ±HH:MM format, such as +00:00.');
  const local=value.length===16?value+':00':value;

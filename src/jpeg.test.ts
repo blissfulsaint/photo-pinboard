@@ -8,7 +8,7 @@ import {writeJpegGps,validateJpeg} from './jpeg.js';
 import {sameGps} from './library.js';
 import {readMetadata} from './metadata.js';
 const fixture=new URL('../test/fixtures/plain.jpg',import.meta.url);
-function addExif(jpeg,little){
+function addExif(jpeg:Uint8Array,little:boolean){
  const tiff=new Uint8Array(49),v=new DataView(tiff.buffer);
  tiff.set(little?[73,73]:[77,77]);v.setUint16(2,42,little);v.setUint32(4,8,little);v.setUint16(8,2,little);
  v.setUint16(10,271,little);v.setUint16(12,2,little);v.setUint32(14,11,little);v.setUint32(18,38,little);
@@ -22,7 +22,7 @@ test('adds verifiable GPS without changing original bytes or compressed image da
  const output=writeJpegGps(original,gps);
  assert.ok(sameGps((await readMetadata(new Blob([output]))).embedded,gps));
  assert.deepEqual(original,snapshot);
- const scan=bytes=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
+ const scan=(bytes:Uint8Array)=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
  assert.deepEqual(scan(output),scan(original));
  assert.notEqual(createHash('sha256').update(output).digest('hex'),createHash('sha256').update(original).digest('hex'));
 });
@@ -68,7 +68,7 @@ test('existing GPS can be updated from desktop Buffers with nonzero backing offs
   assert.equal(tags.Make,'MissionCam');assert.equal(tags.Orientation,'Rotate 90 CW');
   assert.ok(sameGps((await readMetadata(new Blob([output]))).embedded,gps));
   assert.deepEqual(allocation,before);
-  const sos=bytes=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
+  const sos=(bytes:Uint8Array)=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
   assert.deepEqual(sos(output),sos(buffer));
  }
 });

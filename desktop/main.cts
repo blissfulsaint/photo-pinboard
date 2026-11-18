@@ -1,24 +1,32 @@
+import type {IpcApi} from '../src/models.js';
+import {messageOf} from '../src/errors.js';
 
-const {app,BrowserWindow,ipcMain,dialog,protocol,net,shell,Menu}=require('electron');
-const fs=require('node:fs/promises'),path=require('node:path'),{pathToFileURL}=require('node:url');
-const {StateStore,PhotoLibrary,isInside}=require('./core.cjs');
-const {mediaResponse}=require('./media-response.cjs');
+import {app,BrowserWindow,ipcMain,dialog,protocol,net,shell,Menu,type IpcMainInvokeEvent} from 'electron';
+import fs = require('node:fs/promises');
+import path = require('node:path');
+import {pathToFileURL} from 'node:url';
+import {StateStore,PhotoLibrary,isInside} from './core.cjs';
+import {mediaResponse} from './media-response.cjs';
 const smoke=process.argv.includes('--pinboard-smoke-test')&&!app.isPackaged;
 app.setName('Photo Pinboard');
+const appRoot=app.getAppPath();
 const appId='app.photopinboard.desktop';
 if(process.platform==='win32')app.setAppUserModelId(appId);
-if(smoke)app.setPath('userData',path.join(__dirname,'..','work','desktop-smoke-profile'));
+if(smoke)app.setPath('userData',path.join(appRoot,'work','desktop-smoke-profile'));
 protocol.registerSchemesAsPrivileged([{scheme:'pinboard',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true,corsEnabled:true}}]);
 const library=new PhotoLibrary();
-let store,window,quitting=false,busy=0,rendererIsReady=false;
+let store:StateStore,window:BrowserWindow,quitting=false,busy=0,rendererIsReady=false;
 const CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'";
-function trusted(event){if(!window||event.sender!==window.webContents||!event.senderFrame?.url.startsWith('pinboard://app/'))throw new Error('Untrusted caller.');}
-function handle(name,fn){ipcMain.handle('pinboard:'+name,async(event,...args)=>{trusted(event);return fn(...args);});}
-async function openRoot(folder){
+function trusted(event:IpcMainInvokeEvent){if(!window||event.sender!==window.webContents||!event.senderFrame?.url.startsWith('pinboard://app/'))throw new Error('Untrusted caller.');}
+type IpcHandler<K extends keyof IpcApi>=(...args:Parameters<IpcApi[K]>)=>Awaited<ReturnType<IpcApi[K]>>|ReturnType<IpcApi[K]>;
+function handle<K extends keyof IpcApi>(name:K,fn:IpcHandler<K>){
+ ipcMain.handle('pinboard:'+name,async(event,...args:unknown[])=>{trusted(event);return fn(...args as Parameters<IpcApi[K]>);});
+}
+async function openRoot(folder:string){
  const root=await library.addRoot(folder),photos=await library.list(root.id),recentFolders=await store.rememberFolder(root.path);
  return {root:{id:root.id,name:root.name,path:root.path},photos,recentFolders};
 }
-function external(url){try{const parsed=new URL(url);if(parsed.protocol==='https:'&&(parsed.hostname==='photos.google.com'||/(^|\.)google\.com$/.test(parsed.hostname)))shell.openExternal(url);}catch{}}
+function external(url:string){try{const parsed=new URL(url);if(parsed.protocol==='https:'&&(parsed.hostname==='photos.google.com'||/(^|\.)google\.com$/.test(parsed.hostname)))shell.openExternal(url);}catch{}}
 app.whenReady().then(async()=>{
  store=new StateStore(app.getPath('userData'));await store.initialize();
  protocol.handle('pinboard',async request=>{
@@ -28,7 +36,7 @@ app.whenReady().then(async()=>{
     const id=url.pathname.slice('/media/'.length),{record}=await library.checkedFile(id);
     return mediaResponse(record.absolute,request);
    }
-   const dist=path.join(__dirname,'..','dist');
+   const dist=path.join(appRoot,'dist');
    const file=path.resolve(dist,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname));
    if(!isInside(dist,file))return new Response('Forbidden',{status:403});
    const response=await net.fetch(pathToFileURL(file).href),headers=new Headers(response.headers);
@@ -58,7 +66,7 @@ app.whenReady().then(async()=>{
   if(!request||typeof request.text!=='string'||Buffer.byteLength(request.text)>30*1024*1024)throw new Error('Export is invalid or too large.');
   const name=path.basename(String(request.name||'photo-pinboard-backup.json'));
   if(!/\.(json|csv)$/.test(name))throw new Error('Only JSON and CSV exports are supported.');
-  const selected=await dialog.showSaveDialog(window,{title:'Save '+name,defaultPath:name,filters:[{name:'Photo Pinboard export',extensions:[name.split('.').at(-1)]}]});
+  const selected=await dialog.showSaveDialog(window,{title:'Save '+name,defaultPath:name,filters:[{name:'Photo Pinboard export',extensions:[name.split('.').at(-1)!]}]});
   if(selected.canceled)return false;await fs.writeFile(selected.filePath,request.text,'utf8');return true;
  });
  handle('import-backup',async()=>{
@@ -66,11 +74,11 @@ app.whenReady().then(async()=>{
   if(selected.canceled)return null;const file=selected.filePaths[0];if((await fs.stat(file)).size>25*1024*1024)throw new Error('Backup exceeds 25 MB.');
   return {name:path.basename(file),text:await fs.readFile(file,'utf8')};
  });
- window=new BrowserWindow({width:1440,height:960,minWidth:900,minHeight:650,show:!smoke,backgroundColor:'#f8f9f6',title:'Photo Pinboard',icon:path.join(__dirname,'..','dist','favicon.ico'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
+ window=new BrowserWindow({width:1440,height:960,minWidth:900,minHeight:650,show:!smoke,backgroundColor:'#f8f9f6',title:'Photo Pinboard',icon:path.join(appRoot,'dist','favicon.ico'),webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
  if(process.platform==='win32'){
   window.setAppDetails({
    appId,
-   appIconPath:app.isPackaged?process.execPath:path.join(__dirname,'..','dist','favicon.ico'),
+   appIconPath:app.isPackaged?process.execPath:path.join(appRoot,'dist','favicon.ico'),
    appIconIndex:0,
    relaunchCommand:app.isPackaged?'"'+process.execPath+'"':'"'+process.execPath+'" "'+app.getAppPath()+'"',
    relaunchDisplayName:'Photo Pinboard'
@@ -85,14 +93,14 @@ app.whenReady().then(async()=>{
  });
  await window.loadURL('pinboard://app/index.html');
  if(smoke){
-  const output=path.join(__dirname,'..','work','desktop-smoke-result.json');
+  const output=path.join(appRoot,'work','desktop-smoke-result.json');
   const timeout=Date.now()+15000;
   while(!rendererIsReady&&Date.now()<timeout)await new Promise(resolve=>setTimeout(resolve,100));
   await fs.mkdir(path.dirname(output),{recursive:true});
   await fs.writeFile(output,JSON.stringify({rendererReady:rendererIsReady,title:window.getTitle(),electron:process.versions.electron,sandboxed:true},null,2));
   app.exit(rendererIsReady?0:1);
  }
-}).catch(error=>{if(smoke)console.error(error);else dialog.showErrorBox('Photo Pinboard could not start',error.message);app.exit(1);});
+}).catch(error=>{if(smoke)console.error(error);else dialog.showErrorBox('Photo Pinboard could not start',messageOf(error));app.exit(1);});
 app.on('window-all-closed',()=>app.quit());
 app.on('before-quit',event=>{
  if(!quitting&&store){event.preventDefault();quitting=true;store.flush().finally(()=>app.quit());}

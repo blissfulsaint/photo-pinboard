@@ -1,3 +1,5 @@
+import type {SourceDirectory} from './models.js';
+import {fileURLToPath} from 'node:url';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,17 +11,17 @@ import {hashFile} from './metadata.js';
 import {photoStatus,photoKey,assignmentFor} from './library.js';
 const gps={lat:35.0116,lng:135.7681};
 const plain=()=>readFile(new URL('../test/fixtures/plain.jpg',import.meta.url));
-function memoryHandle(initial,{corruptOnce=false,failWrite=false}={}){
+function memoryHandle(initial:Uint8Array,{corruptOnce=false,failWrite=false}={}){
  let bytes=initial,writes=0,opens=0,aborts=0;
  return {
   name:'photo.JPG',get writes(){return writes;},get opens(){return opens;},get aborts(){return aborts;},
-  async getFile(){return Object.assign(new Blob([bytes],{type:'image/jpeg'}),{lastModified:100+writes});},
-  async createWritable(){opens++;return {async write(blob){if(failWrite)throw new Error('Disk is full.');bytes=new Uint8Array(await blob.arrayBuffer());},async close(){writes++;if(corruptOnce&&writes===1)bytes=new Uint8Array([1,2,3]);},async abort(){aborts++;}};}
+  async getFile(){return Object.assign(new Blob([Uint8Array.from(bytes)],{type:'image/jpeg'}),{lastModified:100+writes});},
+  async createWritable(){opens++;return {async write(blob:Blob){if(failWrite)throw new Error('Disk is full.');bytes=new Uint8Array(await blob.arrayBuffer());},async close(){writes++;if(corruptOnce&&writes===1)bytes=new Uint8Array([1,2,3]);},async abort(){aborts++;}};}
  };
 }
 test('resolves the exact source path without creating folders or changing filenames',async()=>{
- const data=await plain(),hash=await hashFile(new Blob([data])),handle=memoryHandle(data),calls=[];
- const directory={async getDirectoryHandle(name,options){calls.push([name,options]);return {async getFileHandle(name,options){calls.push([name,options]);return handle;}};}};
+ const data=await plain(),hash=await hashFile(new Blob([data])),handle=memoryHandle(data),calls:Array<[string,{create?:boolean}|undefined]>=[];
+ const directory:SourceDirectory={name:'Japan',async getFileHandle(){throw new Error('Unexpected root file access');},async getDirectoryHandle(name,options){calls.push([name,options]);return {name,async getDirectoryHandle(){throw new Error('Unexpected child directory');},async getFileHandle(name,options){calls.push([name,options]);return handle;}};}};
  const photo={path:'Japan/Kyoto/photo.JPG',name:'photo.JPG',hash};
  const result=await prepareOriginal(directory,photo);
  assert.equal(result.handle,handle);
@@ -29,7 +31,7 @@ test('resolves the exact source path without creating folders or changing filena
 });
 test('rejects path traversal and wrong source contents before writing',async()=>{
  for(const path of ['Japan/../photo.JPG','Japan/./photo.JPG','Japan//photo.JPG','Japan/evil\\photo.JPG'])assert.throws(()=>sourceRelativeParts({path,name:'photo.JPG'}));
- const handle=memoryHandle(await plain()),directory={async getFileHandle(){return handle;}};
+ const handle=memoryHandle(await plain()),directory:SourceDirectory={name:'Japan',async getDirectoryHandle(){throw new Error('Unexpected child directory');},async getFileHandle(){return handle;}};
  await assert.rejects(()=>prepareOriginal(directory,{path:'Japan/photo.JPG',name:'photo.JPG',hash:'0'.repeat(64)}),/wrong folder/);
  assert.equal(handle.opens,0);
 });
@@ -59,11 +61,11 @@ test('write-stream failure aborts and never reports success',async()=>{
  assert.equal(handle.aborts,1);assert.equal(handle.writes,0);
 });
 test('overwrites a real fixture file at the same path and verifies it from disk',async()=>{
- const directory=await mkdtemp(new URL('../test/write-originals-',import.meta.url)),path=join(directory,'Original.JPG');
+ const directory=await mkdtemp(fileURLToPath(new URL('../test/write-originals-',import.meta.url))),path=join(directory,'Original.JPG');
  try{
   const data=await plain();await writeFile(path,data);
   const snapshot=new Blob([data]),output=new Blob([writeJpegGps(data,gps)]);
-  const handle={async getFile(){return Object.assign(new Blob([await readFile(path)],{type:'image/jpeg'}),{lastModified:123});},async createWritable(){let buffer;return {async write(blob){buffer=new Uint8Array(await blob.arrayBuffer());},async close(){await writeFile(path,buffer);},async abort(){}};}};
+  const handle={async getFile(){return Object.assign(new Blob([await readFile(path)],{type:'image/jpeg'}),{lastModified:123});},async createWritable(){let buffer:Uint8Array;return {async write(blob:Blob){buffer=new Uint8Array(await blob.arrayBuffer());},async close(){await writeFile(path,buffer);},async abort(){}};}};
   const refreshed=await overwriteOriginal(handle,snapshot,await hashFile(snapshot),output,await hashFile(output),gps);
   assert.equal(photoStatus(refreshed,gps),'geotagged');
   assert.equal(await hashFile(new Blob([await readFile(path)])),refreshed.hash);

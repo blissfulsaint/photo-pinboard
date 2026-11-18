@@ -12,3 +12,5 @@ vendor/*.exe
 .DS_Store
 Thumbs.db
 Desktop.ini
+build/
+*.tsbuildinfo

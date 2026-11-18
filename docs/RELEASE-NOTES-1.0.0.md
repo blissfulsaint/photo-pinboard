@@ -4,7 +4,8 @@ The first public release of Photo Pinboard, a local tool for adding locations an
 
 ## Included
 
-- A shared React interface for web and portable Windows use.
+- A shared React/TypeScript interface for web and portable Windows use.
+- Strict TypeScript checks for application modules, Electron contracts, build scripts, and tests.
 - Nested folder browsing, search, previews, batch selection, and individual review.
 - Detection of existing GPS and missing capture dates.
 - Manual and batch location assignments with reusable saved places.

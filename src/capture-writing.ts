@@ -1,9 +1,10 @@
+import type {CaptureDate,CaptureInput,Gps,FileLike} from "./models.js";
 import {parseCaptureDate} from './capture-date.js';
 import {writeJpegCaptureDate} from './jpeg.js';
 import {hashFile,readMetadata,readExifCaptureFields} from './metadata.js';
 import {sameGps} from './library.js';
 
-export async function verifyCaptureDate(file,capture,gps){
+export async function verifyCaptureDate(file:FileLike,capture:CaptureDate,gps:Gps|null|undefined){
  const info=await readMetadata(file);
  const fields=await readExifCaptureFields(new Uint8Array(await file.arrayBuffer()));
  const locationMatches=gps?sameGps(info.embedded,gps):info.embedded===null;
@@ -13,7 +14,7 @@ export async function verifyCaptureDate(file,capture,gps){
  return info;
 }
 
-export async function prepareCaptureDate(file,input){
+export async function prepareCaptureDate(file:FileLike,input:CaptureInput){
  if(file.size>100*1024*1024)throw new Error('JPEG writing is limited to 100 MB per file.');
  const capture=parseCaptureDate(input.value,input.offset);
  const before=await readMetadata(file);

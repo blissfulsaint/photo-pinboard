@@ -1,7 +1,7 @@
-const fs=require('node:fs/promises');
-const {NtExecutable,NtExecutableResource,Data,Resource}=require('resedit');
+import fs = require('node:fs/promises');
+import {NtExecutable,NtExecutableResource,Data,Resource} from 'resedit';
 
-async function brandWindows(source,destination,iconPath,pkg){
+async function brandWindows(source:string,destination:string,iconPath:string,pkg:{version:string;productName:string;name:string}){
  // Only the copied release executable is edited. Its resources are regenerated unsigned.
  const executable=NtExecutable.from(await fs.readFile(source),{ignoreCert:true});
  const resources=NtExecutableResource.from(executable);
@@ -29,4 +29,4 @@ async function brandWindows(source,destination,iconPath,pkg){
  resources.outputResource(executable);
  await fs.writeFile(destination,Buffer.from(executable.generate()));
 }
-module.exports={brandWindows};
+export {brandWindows};

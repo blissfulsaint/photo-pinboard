@@ -114,3 +114,9 @@ JPEG writes preserve compressed image data. Video writes preserve encoded audio/
 Photo Pinboard uses the same photo-and-location mark in the web header, browser favicon, and Windows application. The vector source is ../public/app-icon.svg. Run npm run icons:generate after editing it to regenerate the multi-resolution Windows ICO and PNG assets. The normal build also regenerates them.
 
 Windows packaging embeds the app icon, product name and release version into the copied executable. A dedicated App User Model ID and relaunch details identify the running taskbar window. Existing pins made from an older Electron-branded executable may need to be unpinned and recreated from the new executable.
+
+## TypeScript development
+
+Application code and tests use TypeScript. React components use .tsx, shared modules and browser workers use .ts, and Electron/build sources use .cts to emit CommonJS .cjs files. Runtime imports with .js or .cjs extensions refer to the compiled output.
+
+Run npm run typecheck for strict checks of the browser app, desktop/build code, and tests. npm run build includes these checks and emits native modules under build/ before building the web app under dist/. Generated build/ files are excluded from Git. npm test runs the shared TypeScript tests through tsx, and npm run test:desktop compiles native modules before running their TypeScript tests against the emitted code. The desktop packager includes compiled JavaScript without requiring TypeScript or tsx on the user's machine.

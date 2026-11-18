@@ -1,8 +1,13 @@
 
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),{execFile}=require('node:child_process'),{promisify}=require('node:util');
-const run=promisify(execFile),video=require('./video.cjs'),{PhotoLibrary,digest}=require('./core.cjs'),{parseRange,mediaResponse}=require('./media-response.cjs');
+import test from 'node:test';
+import assert = require('node:assert/strict');
+import fs = require('node:fs/promises');
+import path = require('node:path');
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+const run=promisify(execFile),video=require('../build/desktop/video.cjs') as typeof import('./video.cjs'),{PhotoLibrary,digest}=require('../build/desktop/core.cjs') as typeof import('./core.cjs'),{parseRange,mediaResponse}=require('../build/desktop/media-response.cjs') as typeof import('./media-response.cjs');
 const ffmpeg=path.join(__dirname,'..','vendor','ffmpeg.exe'),plain=path.join(__dirname,'..','test','fixtures','video','plain.mp4');
-async function fixture(fn){
+async function fixture(fn:(root:string)=>Promise<void>){
  const parent=path.resolve(__dirname,'..','work'),root=await fs.mkdtemp(path.join(parent,'video-test-'));
  try{return await fn(root);}finally{if(path.dirname(root)!==parent||!path.basename(root).startsWith('video-test-'))throw new Error('Unsafe cleanup');await fs.rm(root,{recursive:true,force:true});}
 }
@@ -18,9 +23,9 @@ test('MP4 video and audio payload, creation date, codecs and duration survive GP
  const result=await video.prepareVideo(source,output,gps);
  assert.equal(result.mediaHashes.length,1);assert.equal((await video.readVideo(output)).scanState,'ready');
  assert.deepEqual((await video.readVideo(output)).embedded,gps);assert.equal(digest(await fs.readFile(source)),digest(sourceBytes));
- const info=await video.probe(output);assert.equal(info.streams.filter(s=>['video','audio'].includes(s.codec_type)).length,2);
- assert.equal(info.format.tags.creation_time,'2020-02-06T03:24:32.000000Z');
- assert.equal(info.format.tags.title,'Pinboard synthetic fixture');
+ const info=await video.probe(output);assert.equal(info.streams!.filter(s=>['video','audio'].includes(s.codec_type??'')).length,2);
+ assert.equal(info.format!.tags!.creation_time,'2020-02-06T03:24:32.000000Z');
+ assert.equal(info.format!.tags!.title,'Pinboard synthetic fixture');
  // Reassigning location must update both UserData and Apple's metadata key.
  const rewritten=path.join(root,'retagged.mp4'),next={lat:-35.012345,lng:-135.123456};
  await video.prepareVideo(output,rewritten,next);assert.deepEqual((await video.readVideo(rewritten)).embedded,next);
@@ -28,29 +33,29 @@ test('MP4 video and audio payload, creation date, codecs and duration survive GP
 test('MOV keyed Apple GPS and rotation survive reassignment',()=>fixture(async root=>{
  const source=path.join(root,'clip.mov'),output=path.join(root,'tagged.mov');
  await run(ffmpeg,['-hide_banner','-loglevel','error','-display_rotation:v:0','90','-i',plain,'-map','0','-c','copy','-metadata','com.apple.quicktime.location.ISO6709=+35.000000+135.000000/','-movflags','use_metadata_tags',source],{windowsHide:true});
- const before=await video.probe(source);assert.ok(before.streams[0].side_data_list?.some(d=>Math.abs(d.rotation)===90));
+ const before=await video.probe(source);assert.ok(before.streams![0].side_data_list?.some(d=>Math.abs(d.rotation!)===90));
  assert.deepEqual((await video.readVideo(source)).embedded,{lat:35,lng:135});
  const gps={lat:38.123456,lng:140.123456};await video.prepareVideo(source,output,gps);
  const after=await video.probe(output);assert.deepEqual((await video.readVideo(output)).embedded,gps);
- assert.deepEqual(after.streams[0].side_data_list,before.streams[0].side_data_list);
+ assert.deepEqual(after.streams![0].side_data_list,before.streams![0].side_data_list);
 }));
 test('M4V without audio supports GPS and keeps all media bytes',()=>fixture(async root=>{
  const source=path.join(root,'clip.m4v'),output=path.join(root,'tagged.m4v');
  await run(ffmpeg,['-hide_banner','-loglevel','error','-i',plain,'-an','-c:v','copy','-f','mp4',source],{windowsHide:true});
  await video.prepareVideo(source,output,{lat:0,lng:0});assert.deepEqual((await video.readVideo(output)).embedded,{lat:0,lng:0});
- assert.equal((await video.probe(output)).streams.length,1);
+ assert.equal((await video.probe(output)).streams!.length,1);
 }));
 test('native library imports video, updates originals and copy output, and resumes status on reopen',()=>fixture(async root=>{
  const sourceRoot=path.join(root,'Mission'),sub=path.join(sourceRoot,'Airport');await fs.mkdir(sub,{recursive:true});await fs.copyFile(plain,path.join(sub,'Camera.MP4'));
  const library=new PhotoLibrary(),registered=await library.addRoot(sourceRoot),[item]=await library.list(registered.id);
  assert.equal(item.kind,'video');const before=await library.scan(item.id);assert.equal(before.embedded,null);
- const gps={lat:37.453509,lng:126.447423},updated=await library.writePhoto({id:item.id,expectedHash:before.hash,gps,mode:'originals'});
- assert.equal(path.basename(updated.outputPath),'Camera.MP4');assert.equal(updated.mediaVerified,true);
+ const gps={lat:37.453509,lng:126.447423},updated=await library.writePhoto({id:item.id,expectedHash:before.hash!,gps,mode:'originals'});
+ assert.equal(path.basename(updated.outputPath!),'Camera.MP4');assert.equal(updated.mediaVerified,true);
  assert.deepEqual((await library.scan(item.id)).embedded,gps);
  await fs.mkdir(path.join(root,'Copies'));const output=await library.addRoot(path.join(root,'Copies'));
- const request={id:item.id,expectedHash:updated.hash,gps:{lat:35,lng:135},mode:'copies',outputRootId:output.id},copy=await library.writePhoto(request);
- assert.match(copy.outputPath,/Camera\.geotagged-[a-f0-9]{8}\.MP4$/);
- assert.ok(copy.outputPath.includes(path.join('Copies','Mission','Airport')));
+ const request={id:item.id,expectedHash:updated.hash,gps:{lat:35,lng:135},mode:'copies' as const,outputRootId:output.id},copy=await library.writePhoto(request);
+ assert.match(copy.outputPath!,/Camera\.geotagged-[a-f0-9]{8}\.MP4$/);
+ assert.ok(copy.outputPath!.includes(path.join('Copies','Mission','Airport')));
  await assert.rejects(()=>library.writePhoto(request),/already exists/);
  assert.deepEqual((await library.scan(item.id)).embedded,gps);
  const reopened=new PhotoLibrary(),again=await reopened.addRoot(sourceRoot),[photo]=await reopened.list(again.id);assert.deepEqual((await reopened.scan(photo.id)).embedded,gps);
@@ -59,7 +64,7 @@ test('videos larger than the JPEG limit scan and write without loading whole fil
  const file=path.join(root,'Large.mp4');await fs.copyFile(plain,file);const originalSize=(await fs.stat(file)).size,extra=101*1024*1024;
  const handle=await fs.open(file,'r+');try{const header=Buffer.alloc(8);header.writeUInt32BE(extra);header.write('free',4);await handle.write(header,0,8,originalSize);await handle.truncate(originalSize+extra);}finally{await handle.close();}
  const library=new PhotoLibrary(),registered=await library.addRoot(root),[photo]=await library.list(registered.id),scan=await library.scan(photo.id);assert.equal(scan.scanState,'ready');
- const result=await library.writePhoto({id:photo.id,expectedHash:scan.hash,gps:{lat:35,lng:135},mode:'originals'});assert.ok(result.size>100*1024*1024);assert.equal(result.mediaVerified,true);
+ const result=await library.writePhoto({id:photo.id,expectedHash:scan.hash!,gps:{lat:35,lng:135},mode:'originals'});assert.ok(result.size!>100*1024*1024);assert.equal(result.mediaVerified,true);
 }));
 test('fragmented and malformed videos fail without modifying originals',()=>fixture(async root=>{
  const source=path.join(root,'Fragmented.mp4');
@@ -71,8 +76,8 @@ test('fragmented and malformed videos fail without modifying originals',()=>fixt
 }));
 test('open-ended mdat sizes are finalized before metadata is appended',()=>fixture(async root=>{
  const source=path.join(root,'OpenEnded.mp4');await fs.copyFile(plain,source);
- const entries=await video.topLevel(source),mdat=entries.find(e=>e.type==='mdat');assert.equal(mdat.offset+mdat.size,(await fs.stat(source)).size);
- const handle=await fs.open(source,'r+');try{await handle.write(Buffer.alloc(4),0,4,mdat.offset);}finally{await handle.close();}
+ const entries=await video.topLevel(source),mdat=entries.find(e=>e.type==='mdat');assert.equal(mdat!.offset+mdat!.size,(await fs.stat(source)).size);
+ const handle=await fs.open(source,'r+');try{await handle.write(Buffer.alloc(4),0,4,mdat!.offset);}finally{await handle.close();}
  const output=path.join(root,'Tagged.mp4');await video.prepareVideo(source,output,{lat:35,lng:135});assert.deepEqual((await video.readVideo(output)).embedded,{lat:35,lng:135});
 }));
 test('HTTP range responses enable seeking without buffering entire videos',()=>fixture(async root=>{
@@ -94,7 +99,7 @@ test('native capture date restores an undated MP4 without changing GPS or media 
  assert.equal(before.capturedAt,null);
  assert.deepEqual(before.embedded,{lat:35,lng:135});
  const media=await video.mediaHashes(source,await video.topLevel(source));
- const request={id:photo.id,expectedHash:before.hash,mode:'originals',captureDate:{value:'2020-03-20T15:03:36',offset:'+09:00'}};
+ const request={id:photo.id,expectedHash:before.hash,mode:'originals' as const,captureDate:{value:'2020-03-20T15:03:36',offset:'+09:00'}};
  const saved=await library.writePhoto(request);
  assert.equal(saved.capturedAt,'2020-03-20T06:03:36.000Z');
  assert.deepEqual(saved.embedded,before.embedded);

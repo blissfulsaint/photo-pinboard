@@ -1,6 +1,6 @@
-const fs=require('node:fs/promises');
-const path=require('node:path');
-const {Resvg}=require('@resvg/resvg-js');
+import fs = require('node:fs/promises');
+import path = require('node:path');
+import {Resvg} from '@resvg/resvg-js';
 
 async function main(){
  const directory=path.join(__dirname,'..','public');
@@ -18,7 +18,7 @@ async function main(){
   offset+=images[index].length;
  }
  await fs.writeFile(path.join(directory,'favicon.ico'),Buffer.concat([header,...images]));
- for(const [name,size] of [['app-icon.png',256],['apple-touch-icon.png',180]]){
+ for(const [name,size] of [['app-icon.png',256],['apple-touch-icon.png',180]] as const){
   await fs.writeFile(path.join(directory,name),new Resvg(source,{fitTo:{mode:'width',value:size}}).render().asPng());
  }
 }

@@ -11,3 +11,6 @@
 *.jpg binary
 *.ico binary
 *.mp4 binary
+*.ts text eol=lf
+*.tsx text eol=lf
+*.cts text eol=lf

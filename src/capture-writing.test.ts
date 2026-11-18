@@ -1,3 +1,4 @@
+import type {PreparedJpeg} from './models.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -18,7 +19,7 @@ test('web date preparation embeds local capture time and UTC offset while preser
  assert.equal(hash,await hashFile(output));
  assert.deepEqual(await readExifCaptureFields(bytes),{date:'2020:03:20 15:03:36',offset:'+09:00'});
  assert.deepEqual((await verifyCaptureDate(output,parseCaptureDate(input.value,input.offset),gps)).embedded,gps);
- const imageScan=bytes=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
+ const imageScan=(bytes:Uint8Array)=>Buffer.from(bytes).subarray(Buffer.from(bytes).indexOf(Buffer.from([255,218])));
  assert.deepEqual(imageScan(bytes),imageScan(source));
  await assert.rejects(()=>prepareCaptureDate(output,input),/already has a capture date/);
 });
@@ -29,18 +30,20 @@ test('web date preparation rejects invalid dates, offsets, unreadable media, and
   await assert.rejects(()=>prepareCaptureDate(blob,invalid));
  }
  await assert.rejects(()=>prepareCaptureDate(new Blob(['corrupt JPEG']),input),/metadata needs review/);
- await assert.rejects(()=>prepareCaptureDate({size:101*1024*1024},input),/100 MB/);
+ await assert.rejects(()=>prepareCaptureDate(Object.defineProperty(new Blob([]),'size',{value:101*1024*1024}),input),/100 MB/);
 });
 
 test('the shared browser write worker dispatches capture-date requests',async()=>{
- const workerUrl=new URL('./write.worker.js',import.meta.url).href;
+ const workerUrl=new URL('./write.worker.ts',import.meta.url).href;
  const worker=new Worker(`
   const {parentPort}=require('node:worker_threads');
-  global.self={postMessage:(data,transfer)=>parentPort.postMessage(data,transfer)};
+  require('tsx/esm/api').register();
+  global.self=globalThis;
+  self.postMessage=(data,transfer)=>parentPort.postMessage(data,transfer);
   import(${JSON.stringify(workerUrl)}).then(()=>parentPort.on('message',data=>self.onmessage({data})));
  `,{eval:true});
  try{
-  const reply=new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});
+  const reply=new Promise<PreparedJpeg & {error?:string}>((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});
   worker.postMessage({file:new Blob([await fixture()]),captureDate:input});
   const result=await reply;
   assert.equal(result.error,undefined);

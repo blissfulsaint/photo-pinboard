@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "npm run icons:generate && vite build",
-    "test": "node --test src/geo.test.js src/folders.test.js src/library.test.js src/metadata.test.js src/jpeg.test.js src/file-writing.test.js src/media.test.js src/capture-writing.test.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.desktop.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
+    "build:desktop": "tsc -p tsconfig.desktop.json",
+    "build": "npm run typecheck && npm run icons:generate && npm run build:desktop && vite build",
+    "test": "tsx --test src/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
-    "desktop:install": "node scripts/install-electron.cjs",
+    "desktop:install": "tsx scripts/install-electron.cts",
     "desktop:start": "npm run build && electron .",
-    "desktop:package": "npm run build && node scripts/package-desktop.cjs",
+    "desktop:package": "npm run build && tsx scripts/package-desktop.cts",
     "desktop:smoke": "npm run build && electron . --pinboard-smoke-test",
-    "test:desktop": "node --test desktop/core.test.cjs desktop/video.test.cjs",
-    "icons:generate": "node scripts/generate-icons.cjs"
+    "test:desktop": "npm run build:desktop && tsx --test desktop/*.test.cts",
+    "icons:generate": "tsx scripts/generate-icons.cts"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
@@ -26,14 +28,21 @@
   "devDependencies": {
     "@electron/asar": "^4.3.1",
     "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/wicg-file-system-access": "^2023.10.7",
+    "@types/yazl": "^3.3.1",
     "electron": "^45.0.0",
     "resedit": "^3.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
     "vite": "^6.1.0",
     "yazl": "^3.3.1"
   },
   "productName": "Photo Pinboard",
   "description": "Local photo and video geotagging and capture-date repair",
-  "main": "desktop/main.cjs",
+  "main": "build/desktop/main.cjs",
   "engines": {
     "node": ">=22.12.0"
   },

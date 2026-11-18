@@ -1,28 +1,43 @@
+import type {Gps,Metadata,CaptureDate} from '../src/models.js';
+import {messageOf} from '../src/errors.js';
+interface ProbeStream {
+ codec_type?:string;codec_name?:string;codec_tag_string?:string;width?:number;height?:number;
+ sample_rate?:string;channels?:number;nb_frames?:string;duration?:string;time_base?:string;
+ tags?:Record<string,string>;side_data_list?:Array<{side_data_type:string;rotation?:number;displaymatrix?:string}>;
+}
+interface ProbeInfo {format?:{format_name?:string;duration?:string;tags?:Record<string,string>};streams?:ProbeStream[];chapters?:unknown[]}
+interface VideoBox {type:string;start:number;end:number;size:number;header:number;payload:number;bytes:Buffer}
+interface TopBox {type:string;offset:number;size:number;header:number;openEnded:boolean}
 
-const fs=require('node:fs/promises'),path=require('node:path'),{createReadStream}=require('node:fs'),{createHash}=require('node:crypto'),{execFile}=require('node:child_process'),{promisify}=require('node:util');
+import fs = require('node:fs/promises');
+import path = require('node:path');
+import {createReadStream} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 const run=promisify(execFile);
 const VIDEO=/\.(mp4|mov|m4v|3gp|3g2|avi|mkv|webm|mts|m2ts|mpg|mpeg|wmv)$/i;
 const WRITABLE=/\.(mp4|mov|m4v)$/i;
 const MAX_MOOV=64*1024*1024,XYZ='\xa9xyz',KEY='com.apple.quicktime.location.ISO6709';
-function toolPath(){return __dirname.includes('.asar'+path.sep)?path.join(__dirname,'..','..','tools','ffprobe.exe'):path.join(__dirname,'..','vendor','ffprobe.exe');}
-function parseIso6709(value){
+function toolPath(){return __dirname.includes('.asar'+path.sep)?path.join(__dirname,'..','..','tools','ffprobe.exe'):path.join(__dirname,'..','..','vendor','ffprobe.exe');}
+function parseIso6709(value:unknown){
  const match=String(value??'').trim().match(/^([+-]\d{2}(?:\.\d+)?)([+-]\d{3}(?:\.\d+)?)(?:[+-]\d+(?:\.\d+)?)?(?:CRS[^/]+)?\/?$/);
  if(!match)return null;
  const lat=Number(match[1]),lng=Number(match[2]);return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null;
 }
-function iso6709(gps){if(!Number.isFinite(gps.lat)||!Number.isFinite(gps.lng)||Math.abs(gps.lat)>90||Math.abs(gps.lng)>180)throw new Error('Invalid coordinates.');return (gps.lat<0?'-':'+')+Math.abs(gps.lat).toFixed(6).padStart(9,'0')+(gps.lng<0?'-':'+')+Math.abs(gps.lng).toFixed(6).padStart(10,'0')+'/';}
-async function probe(file){
+function iso6709(gps:Gps){if(!Number.isFinite(gps!.lat)||!Number.isFinite(gps!.lng)||Math.abs(gps!.lat)>90||Math.abs(gps!.lng)>180)throw new Error('Invalid coordinates.');return (gps!.lat<0?'-':'+')+Math.abs(gps!.lat).toFixed(6).padStart(9,'0')+(gps!.lng<0?'-':'+')+Math.abs(gps!.lng).toFixed(6).padStart(10,'0')+'/';}
+async function probe(file:string):Promise<ProbeInfo>{
  const {stdout}=await run(toolPath(),['-v','error','-show_format','-show_streams','-show_chapters','-of','json',file],{windowsHide:true,timeout:120000,maxBuffer:8*1024*1024});
  return JSON.parse(stdout);
 }
-function locations(info){
+function locations(info:ProbeInfo){
  const values=[];
  for(const tags of [info.format?.tags,...(info.streams??[]).map(s=>s.tags)]){
   for(const [key,value]of Object.entries(tags??{}))if(/^(location(?:-[a-z]{3})?|com\.apple\.quicktime\.location\.ISO6709|GPSCoordinates)$/i.test(key))values.push({key,value,gps:parseIso6709(value)});
  }
  return values;
 }
-function videoCaptureDate(info){
+function videoCaptureDate(info:ProbeInfo){
  for(const tags of [info.format?.tags,...(info.streams??[]).map(stream=>stream.tags)]){
   for(const [key,value] of Object.entries(tags??{})){
    if(!/^(creation_time|date|com\.apple\.quicktime\.creationdate|dateTimeOriginal|dateTimeDigitized)$/i.test(key))continue;
@@ -32,7 +47,7 @@ function videoCaptureDate(info){
  }
  return null;
 }
-function patchMovieDate(movie,iso){
+function patchMovieDate(movie:VideoBox,iso:string){
  const headers=boxes(movie.bytes,movie.header).filter(node=>node.type==='mvhd');
  if(headers.length!==1)throw new Error('Expected one video creation header.');
  const header=headers[0],start=header.payload;
@@ -44,15 +59,15 @@ function patchMovieDate(movie,iso){
  else throw new Error('This video header cannot store the selected date.');
  return bytes;
 }
-function probeMetadata(info,file){
+function probeMetadata(info:ProbeInfo,file:string):Metadata{
  const found=locations(info),valid=found.filter(v=>v.gps),gps=valid[0]?.gps??null;
- const conflicting=valid.some(v=>Math.abs(v.gps.lat-gps.lat)>0.0001||Math.abs(v.gps.lng-gps.lng)>0.0001);
+ const conflicting=valid.some(v=>Math.abs(v.gps!.lat-gps!.lat)>0.0001||Math.abs(v.gps!.lng-gps!.lng)>0.0001);
  const supported=WRITABLE.test(file)&&/mov|mp4/.test(info.format?.format_name??'');
  const unreadable=conflicting||found.some(v=>!v.gps)||!supported;
  return {scanState:unreadable?'unreadable':'ready',scanError:conflicting?'Video has conflicting location fields. Review before assigning.':found.some(v=>!v.gps)?'Video has location metadata that could not be interpreted.':!supported?'GPS detection/writing is currently supported for MP4, MOV and M4V videos.':null,embedded:conflicting?null:gps,kind:'video',duration:Number(info.format?.duration)||null,videoCodec:info.streams?.find(s=>s.codec_type==='video')?.codec_name??null,capturedAt:videoCaptureDate(info)};
 }
-async function readVideo(file){try{return probeMetadata(await probe(file),file);}catch(error){return {kind:'video',scanState:'unreadable',scanError:'Video metadata could not be read: '+error.message,embedded:null};}}
-function boxes(buffer,start=0,end=buffer.length){
+async function readVideo(file:string):Promise<Metadata>{try{return probeMetadata(await probe(file),file);}catch(error){return {kind:'video',scanState:'unreadable',scanError:'Video metadata could not be read: '+messageOf(error),embedded:null};}}
+function boxes(buffer:Buffer,start=0,end=buffer.length):VideoBox[]{
  const entries=[];let offset=start;
  while(offset<end){
   if(end-offset<8)throw new Error('Truncated video metadata box.');
@@ -65,13 +80,13 @@ function boxes(buffer,start=0,end=buffer.length){
  }
  return entries;
 }
-function box(type,payload){
+function box(type:string|Buffer,payload:Buffer){
  const result=Buffer.alloc(8+payload.length);result.writeUInt32BE(result.length,0);
  if(Buffer.isBuffer(type))type.copy(result,4);else result.write(type,4,4,'latin1');
  payload.copy(result,8);return result;
 }
-function textData(value){const header=Buffer.alloc(8);header.writeUInt32BE(1,0);return box('data',Buffer.concat([header,Buffer.from(value)]));}
-function patchMeta(node,value){
+function textData(value:string){const header=Buffer.alloc(8);header.writeUInt32BE(1,0);return box('data',Buffer.concat([header,Buffer.from(value)]));}
+function patchMeta(node:VideoBox,value:string):Buffer{
  const payload=node.bytes.subarray(node.header),prefix=payload.readUInt32BE(0)===0?4:0,children=boxes(payload,prefix),keys=children.find(c=>c.type==='keys'),ilst=children.find(c=>c.type==='ilst');
  if(!keys||!ilst)return node.bytes; // Keep non-keyed metadata intact; canonical GPS is also written in UserData.
  const keyPayload=keys.bytes.subarray(keys.header);
@@ -93,7 +108,7 @@ function patchMeta(node,value){
  const rebuilt=box('ilst',Buffer.concat(items));
  return box('meta',Buffer.concat([payload.subarray(0,prefix),...children.map(c=>c===ilst?rebuilt:c.bytes)]));
 }
-function patchContainer(node,value){
+function patchContainer(node:VideoBox,value:string):Buffer{
  const children=boxes(node.bytes,node.header);let foundUserData=false;
  const output=children.map(child=>{
   if(child.type==='udta'){
@@ -112,7 +127,7 @@ function patchContainer(node,value){
  }
  return box(node.type,Buffer.concat(output));
 }
-async function topLevel(file){
+async function topLevel(file:string):Promise<TopBox[]>{
  const handle=await fs.open(file,'r');try{
   const {size:total}=await handle.stat(),entries=[];let offset=0;
   while(offset<total){
@@ -127,7 +142,7 @@ async function topLevel(file){
   return entries;
  }finally{await handle.close();}
 }
-async function mediaHashes(file,entries){
+async function mediaHashes(file:string,entries:TopBox[]){
  const result=[];
  for(const entry of entries.filter(e=>e.type==='mdat')){
   const hash=createHash('sha256');const start=entry.offset+entry.header,end=entry.offset+entry.size-1;
@@ -136,7 +151,7 @@ async function mediaHashes(file,entries){
  }
  return result;
 }
-async function prepareVideo(source,destination,gps,capture){
+async function prepareVideo(source:string,destination:string,gps:Gps|undefined,capture?:CaptureDate|null){
  if(!WRITABLE.test(source))throw new Error('Video writing supports MP4, MOV and M4V.');
  const entries=await topLevel(source),moovs=entries.filter(e=>e.type==='moov'),media=entries.filter(e=>e.type==='mdat');
  if(moovs.length!==1||!media.length)throw new Error('Unsupported video layout: expected one movie header and media data.');
@@ -149,7 +164,7 @@ async function prepareVideo(source,destination,gps,capture){
  const before=await probe(source);
  if(capture&&(videoCaptureDate(before)||/DateTimeOriginal|DateCreated|CreateDate|CreationDate/i.test(original.toString('latin1'))))throw new Error('This video already has date metadata.');
  const movie=boxes(original)[0];
- const updated=capture?patchMovieDate(movie,capture.iso):patchContainer(movie,iso6709(gps));
+ const updated=capture?patchMovieDate(movie,capture.iso):patchContainer(movie,iso6709(gps!));
  await fs.copyFile(source,destination,require('node:fs').constants.COPYFILE_EXCL);
  const writable=await fs.open(destination,'r+');
  try{
@@ -160,17 +175,17 @@ async function prepareVideo(source,destination,gps,capture){
  }finally{await writable.close();}
  const after=await probe(destination);
  const actual=locations(after).filter(v=>v.gps);
- if(gps&&(!actual.length||actual.some(v=>Math.abs(v.gps.lat-gps.lat)>0.000001||Math.abs(v.gps.lng-gps.lng)>0.000001)))throw new Error('Saved video GPS failed independent readback.');
+ if(gps&&(!actual.length||actual.some(v=>Math.abs(v.gps!.lat-gps!.lat)>0.000001||Math.abs(v.gps!.lng-gps!.lng)>0.000001)))throw new Error('Saved video GPS failed independent readback.');
 
- const cleanTags=tags=>Object.entries(tags??{}).filter(([key])=>capture?key!=='creation_time':!/^(location(?:-[a-z]{3})?|com\.apple\.quicktime\.location\.ISO6709|GPSCoordinates)$/i.test(key)).sort(([a],[b])=>a.localeCompare(b));
+ const cleanTags=(tags:Record<string,string>|undefined)=>Object.entries(tags??{}).filter(([key])=>capture?key!=='creation_time':!/^(location(?:-[a-z]{3})?|com\.apple\.quicktime\.location\.ISO6709|GPSCoordinates)$/i.test(key)).sort(([a],[b])=>a.localeCompare(b));
  if(JSON.stringify(cleanTags(before.format?.tags))!==JSON.stringify(cleanTags(after.format?.tags)))throw new Error('Unrelated video metadata changed unexpectedly.');
  if(JSON.stringify(before.chapters??[])!==JSON.stringify(after.chapters??[]))throw new Error('Video chapter metadata changed unexpectedly.');
- const signature=info=>(info.streams??[]).map(s=>({type:s.codec_type,codec:s.codec_name,tag:s.codec_tag_string,width:s.width,height:s.height,sampleRate:s.sample_rate,channels:s.channels,frames:s.nb_frames,duration:s.duration,timeBase:s.time_base,rotate:s.tags?.rotate,display:s.side_data_list?.filter(d=>d.side_data_type==='Display Matrix')}));
+ const signature=(info:ProbeInfo)=>(info.streams??[]).map(s=>({type:s.codec_type,codec:s.codec_name,tag:s.codec_tag_string,width:s.width,height:s.height,sampleRate:s.sample_rate,channels:s.channels,frames:s.nb_frames,duration:s.duration,timeBase:s.time_base,rotate:s.tags?.rotate,display:s.side_data_list?.filter(d=>d.side_data_type==='Display Matrix')}));
  if(JSON.stringify(signature(before))!==JSON.stringify(signature(after)))throw new Error('Video stream metadata changed unexpectedly.');
  if(capture&&videoCaptureDate(after)!==capture.iso)throw new Error('Saved video capture date failed independent readback.');
  if(!capture&&before.format?.tags?.creation_time!==after.format?.tags?.creation_time)throw new Error('Video creation timestamp changed unexpectedly.');
  const hashes=await mediaHashes(source,entries),afterHashes=await mediaHashes(destination,await topLevel(destination));
  if(JSON.stringify(hashes)!==JSON.stringify(afterHashes))throw new Error('Video/audio data verification failed.');
- return {embedded:capture?probeMetadata(after,destination).embedded:{lat:gps.lat,lng:gps.lng},duration:Number(after.format?.duration)||null,mediaHashes:hashes};
+ return {embedded:capture?probeMetadata(after,destination).embedded:{lat:gps!.lat,lng:gps!.lng},duration:Number(after.format?.duration)||null,mediaHashes:hashes};
 }
-module.exports={VIDEO,WRITABLE,toolPath,probe,readVideo,probeMetadata,parseIso6709,iso6709,boxes,box,topLevel,mediaHashes,prepareVideo};
+export {VIDEO,WRITABLE,toolPath,probe,readVideo,probeMetadata,parseIso6709,iso6709,boxes,box,topLevel,mediaHashes,prepareVideo};
