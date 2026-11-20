@@ -17,11 +17,11 @@ The app version lives in package.json. Keep the root version in package-lock.jso
 - [x] Shared version source for web and Windows.
 - [x] MIT license selected by the project owner.
 - [x] Public README, usage guide, and GitHub download layout prepared.
-- [ ] Obtain and package the complete corresponding source, dependency source, and build information for the exact bundled FFprobe build. Bundling was selected by the project owner.
+- [x] Build FFprobe from pinned, unmodified sources and package FFmpeg/compiler/runtime sources, toolchain recipes, patches, and actual configuration/build logs. Bundling was selected by the project owner.
 - [ ] Review and approve the repository contents and release text.
 - [x] Shared tests (35), native tests (17), and production web build pass for the 1.0.0 source candidate.
-- [ ] Build and verify the final Windows package after the FFprobe source-distribution item is complete.
-- [ ] Verify the final Windows app interactively, including taskbar branding, folder selection, and writes on disposable test files.
+- [x] Build and verify the Windows candidate after preparing the FFprobe source-distribution asset. The 2026-11-20 candidate passed strict TypeScript checks, 52 tests, and packaged-runtime JPEG/date/video checks; publish the matching source asset with it.
+- [x] Verify the final Windows app interactively. The project owner confirmed the 2026-11-20 candidate's interactive check passed.
 - [x] Create the public repository and upload the source candidate.
 - [x] Save the unpublished Photo Pinboard 1.0.0 release draft.
 - [ ] Tag the release commit v1.0.0 and publish the named Windows ZIP, checksum, and required third-party source assets with the release notes.
@@ -29,7 +29,7 @@ The app version lives in package.json. Keep the root version in package-lock.jso
 
 ## Build and validate
 
-Use Node.js 24. Install the pinned dependencies with npm ci. Obtain the exact vendor tools recorded in vendor/toolchain.json for Windows video tests and packaging. The developer FFmpeg fixture tool is excluded from the portable app.
+Use Node.js 24. Install the pinned dependencies with npm ci. Run `npm run tools:prepare -- --work-dir C:/build/photo-pinboard-ffprobe` in a dedicated working directory without spaces to build the pinned FFprobe and generate its corresponding-source asset. This downloads and uses a portable compiler without installing system software. See the usage guide for the separate developer-only FFmpeg fixture tool, which is excluded from the portable app.
 
 ```sh
 npm test
@@ -37,13 +37,13 @@ npm run test:desktop
 npm run desktop:package
 ```
 
-The desktop packager refuses an existing version directory. It generates the shared web assets, verifies version alignment, embeds the app name and icon, and creates release/Photo-Pinboard-1.0.0-win-x64.zip with a matching .sha256 file.
+The desktop packager refuses an existing version directory. It generates the shared web assets, verifies version alignment and the FFprobe binary/source-archive hashes, embeds the app name and icon, and creates release/Photo-Pinboard-1.0.0-win-x64.zip with a matching .sha256 file. Use `npm run desktop:package -- --output-dir release/candidate-name` to preserve an earlier candidate of the same unpublished version; this also copies the required source asset and checksum next to the candidate ZIP.
 
 ## Release assets
 
 - Photo-Pinboard-1.0.0-win-x64.zip, the complete portable application.
 - Photo-Pinboard-1.0.0-win-x64.zip.sha256, the checksum for that exact ZIP.
-- Required corresponding-source archives and build information for redistributed GPL components when FFprobe is bundled. List them clearly next to the Windows download.
+- Photo-Pinboard-1.0.0-ffprobe-sources.zip and its .sha256 checksum: complete FFmpeg/compiler/runtime sources, build recipes, provenance, and configuration for the exact bundled LGPL FFprobe. Publish this alongside the Windows download. It is optional for running the app.
 - Optionally, a ZIP of the static web build for people who want to self-host.
 
 GitHub also generates source-code ZIP and tar archives from the tag. Explain that those are source code rather than the runnable Windows app.

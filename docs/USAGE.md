@@ -97,7 +97,17 @@ The React UI is built from the same sources for both editions. `package.json` is
 
 ### Video tools
 
-The Windows app requires `vendor/ffprobe.exe`. Desktop video tests additionally require `vendor/ffmpeg.exe`, which is used for fixtures and is excluded from the release. `vendor/toolchain.json` records the FFmpeg version, build/source URLs and checksums. Obtain the matching tools from the recorded build provider and verify the checksums.
+The Windows app requires `vendor/ffprobe.exe`. Build the pinned reader and prepare its source-distribution asset on Windows with:
+
+```sh
+npm run tools:prepare -- --work-dir C:/build/photo-pinboard-ffprobe
+```
+
+Use a dedicated writable working directory without spaces. A Windows short path also works. This downloads about 320 MB of pinned build tools and sources, checks their hashes, compiles FFprobe, and creates the `vendor/` provenance/notices and a corresponding-source ZIP under `release/`. The portable compiler is used only inside this working directory; no system installation is required. Build logs remain there. Allow several minutes for configuration and compilation. `scripts/build-ffprobe.sh` contains the exact FFmpeg configuration. The `--collect` option collects an already completed build without recompiling it.
+
+Desktop video tests additionally require `vendor/ffmpeg.exe` for generating synthetic fixtures; this executable is excluded from the release. The existing fixture generator is Gyan essentials 9.0.2, available from https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2. It is separate from the FFprobe build used by the app.
+
+The packager checks the FFprobe binary and source-archive hashes against `vendor/toolchain.json`. Both must match before it creates a Windows package. To keep an earlier candidate while rebuilding the same unpublished version, use `npm run desktop:package -- --output-dir release/candidate-name`.
 
 The package includes FFprobe as a separate executable along with its license, provenance and third-party notices. JPEG processing uses exifr and the app's metadata writer. Electron runs a sandboxed renderer with context isolation and native file access restricted to selected folders.
 

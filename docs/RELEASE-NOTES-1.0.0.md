@@ -15,12 +15,13 @@ The first public release of Photo Pinboard, a local tool for adding locations an
 - Windows capture-date embedding for undated JPEG, MP4, MOV, and M4V files.
 - Portable JSON progress backups and CSV location inventories.
 - Photo Pinboard app icons, favicon, and Windows taskbar branding.
+- A bundled local-only FFprobe reader built from pinned FFmpeg sources, with complete source/build materials supplied as a separate release asset.
 
 ## Download and run
 
 Download Photo-Pinboard-1.0.0-win-x64.zip, extract it completely, and run Photo Pinboard.exe. Keep the included files beside the executable. No Node.js installation is needed. The ZIP supports Windows 10/11 x64 and is unsigned.
 
-The accompanying .sha256 file verifies the ZIP. GitHub's automatically generated source archives contain project source files.
+The accompanying .sha256 file verifies the ZIP. `Photo-Pinboard-1.0.0-ffprobe-sources.zip` contains the bundled reader's source and build materials; it is optional for running the app. GitHub's automatically generated source archives contain project source files.
 
 Keep a backup before updating originals. The GPS copy option preserves the original files. The capture-date tool updates originals and applies one entered timestamp to each batch.
 

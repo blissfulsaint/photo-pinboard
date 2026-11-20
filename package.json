@@ -14,6 +14,7 @@
     "desktop:start": "npm run build && electron .",
     "desktop:package": "npm run build && tsx scripts/package-desktop.cts",
     "desktop:smoke": "npm run build && electron . --pinboard-smoke-test",
+    "tools:prepare": "tsx scripts/prepare-ffprobe.cts",
     "test:desktop": "npm run build:desktop && tsx --test desktop/*.test.cts",
     "icons:generate": "tsx scripts/generate-icons.cts"
   },

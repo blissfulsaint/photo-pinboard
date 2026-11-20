@@ -1,10 +1,26 @@
-ffprobe version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers
-built with gcc 16.2.0 (Rev3, Built by MSYS2 project)
-configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-cairo --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-zlib --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-sdl2 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxvid --enable-libaom --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-openal --enable-libgme --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libtheora --enable-libvo-amrwbenc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-librubberband
+ffprobe version 9.0.2 Copyright (c) 2007-2026 the FFmpeg developers
+built with gcc 16.2.0 (GCC)
+configuration: --target-os=mingw32 --arch=x86_64 --disable-autodetect --disable-gpl --disable-nonfree --disable-version3 --disable-network --disable-doc --disable-debug --disable-ffmpeg --disable-ffplay --disable-avdevice --disable-avfilter --disable-swscale --disable-swresample --disable-encoders --disable-muxers --disable-devices --disable-filters --disable-x86asm --enable-static --disable-shared --extra-ldflags=-static
 libavutil      61.  1.102 / 61.  1.102
 libavcodec     63.  1.102 / 63.  1.102
 libavformat    63.  1.102 / 63.  1.102
-libavdevice    63.  1.102 / 63.  1.102
-libavfilter    12.  1.102 / 12.  1.102
-libswscale     10.  1.102 / 10.  1.102
-libswresample   7.  1.102 /  7.  1.102
+
+ffprobe is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+ffprobe is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with ffprobe; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+Imported Windows system DLLs:
+bcrypt.dll
+KERNEL32.dll
+msvcrt.dll
+SHELL32.dll

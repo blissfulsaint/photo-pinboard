@@ -1,13 +1,43 @@
 {
-  "purpose": "Independent video metadata readback and verification; media payloads are preserved by the app writer",
-  "build": "Gyan essentials win64",
-  "ffprobeSha256": "f0d36ecbbdd3bcfac3efa078c96c7271c2e68b3810595552ac3b7f17e9a65c52",
+  "purpose": "Separate, local-only video metadata reader and independent write verifier",
+  "build": "Photo Pinboard native Windows x64 build; unmodified FFmpeg source; no external codec libraries",
   "version": "9.0.2",
-  "downloadUrl": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+  "ffprobeSha256": "bff6afa843a2198ad16588c758c1b16d51ba4dc9d5b432e2bd0c374ad6694fc3",
+  "license": "LGPL-2.1-or-later; see LICENSE and FFmpeg-LICENSE.md",
   "sourceUrl": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
-  "license": "GPL; see LICENSE",
-  "downloadSha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
-  "releaseUrl": "https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2",
-  "ffmpegSourceRevision": "946fcce07b",
-  "buildInfoFile": "BUILDINFO.txt"
+  "sourceSha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+  "toolchain": "w64devkit 2.11.0 (MinGW-w64 14.0.0, GCC 16.2.0)",
+  "downloads": [
+    {
+      "name": "ffmpeg-9.0.2.tar.xz",
+      "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+      "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e"
+    },
+    {
+      "name": "w64devkit-x64-2.11.0.7z.exe",
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.11.0/w64devkit-x64-2.11.0.7z.exe",
+      "sha256": "54c2bb9962e8a30c8270e34c5efc3d5fee579f53087fa7d435b95fbba2af7b2b"
+    },
+    {
+      "name": "w64devkit-source-2.11.0.tar",
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.11.0/source.tar",
+      "sha256": "50ee43ca02b9ca49e0e16da7eaf9701c9a396a019ebb2416a93d16769d53e5ff"
+    },
+    {
+      "name": "w64devkit-build-2.11.0.tar.gz",
+      "url": "https://github.com/skeeto/w64devkit/archive/refs/tags/v2.11.0.tar.gz",
+      "sha256": "d24cfcf20ae5a344fd005e66e64ec642f702eecec320d47d02d31410b0c83572"
+    }
+  ],
+  "buildRecipe": "scripts/build-ffprobe.sh",
+  "buildInfoFile": "BUILDINFO.txt",
+  "importedSystemDlls": [
+    "bcrypt.dll",
+    "KERNEL32.dll",
+    "msvcrt.dll",
+    "SHELL32.dll"
+  ],
+  "sourceAsset": "Photo-Pinboard-1.0.0-ffprobe-sources.zip",
+  "sourceReleaseUrl": "https://github.com/blissfulsaint/photo-pinboard/releases/tag/v1.0.0",
+  "sourceAssetSha256": "fdba86b9e5be944701ef473cc0bd642211e319d5d398fa95b18bed77c5587a4a"
 }

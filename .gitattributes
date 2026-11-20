@@ -14,3 +14,4 @@
 *.ts text eol=lf
 *.tsx text eol=lf
 *.cts text eol=lf
+*.sh text eol=lf

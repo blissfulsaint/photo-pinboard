@@ -10,14 +10,16 @@ The MIT License at the repository root applies to Photo Pinboard's original code
 | DM Sans | Interface font | SIL Open Font License 1.1 |
 | Manrope | Interface font | SIL Open Font License 1.1 |
 | Electron and Chromium | Windows runtime | Electron MIT and Chromium third-party notices |
-| FFprobe from the recorded Gyan build | Separate Windows video metadata reader | GPLv3, plus applicable dependency notices |
+| FFprobe built from unmodified FFmpeg 9.0.2 sources | Separate Windows video metadata reader | LGPL-2.1-or-later; MinGW runtime notices and GCC Runtime Library Exception also included |
 
 The Windows package includes Electron's LICENSE and LICENSES.chromium.html, full notices for bundled web dependencies and fonts, and the FFprobe license and toolchain provenance under resources/tools. Development dependencies retain their upstream licenses in their packages.
 
 FFprobe is an executable launched separately from Photo Pinboard. The app uses it for independent metadata readback. Video metadata modifications are implemented by Photo Pinboard without remuxing or re-encoding.
 
-The current FFprobe build enables GPL components and includes external libraries. Before public binary distribution, provide access to the corresponding source and build information for the exact binary and its applicable dependencies. The existing upstream FFmpeg tarball link alone has not been verified to satisfy that requirement for the complete Gyan build. Track completion in [the release guide](docs/RELEASING.md).
+The release uses Photo Pinboard's own Windows x64 FFprobe build, with GPL/nonfree components, network protocols, encoding, and external codec libraries disabled. It requires only Windows system DLLs. It replaces the development build previously obtained from Gyan.
+
+The named `Photo-Pinboard-1.0.0-ffprobe-sources.zip` release asset contains the complete FFmpeg source, the compiler/runtime source archive, the pinned toolchain build recipes and patches, and the actual FFmpeg configuration and build logs. Publish this asset and its checksum alongside the Windows ZIP. Binary and source-archive hashes are recorded in `vendor/toolchain.json`; the Windows packager verifies both before packaging. See `vendor/SOURCES.md` and [the release guide](docs/RELEASING.md).
 
 - [FFmpeg license information](https://ffmpeg.org/legal.html)
-- [Gyan build provider](https://www.gyan.dev/ffmpeg/builds/)
+- [Pinned w64devkit build tools and source](https://github.com/skeeto/w64devkit/releases/tag/v2.11.0)
 - [Recorded toolchain provenance](vendor/toolchain.json)
