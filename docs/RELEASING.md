@@ -18,7 +18,7 @@ The app version lives in package.json. Keep the root version in package-lock.jso
 - [x] MIT license selected by the project owner.
 - [x] Public README, usage guide, and GitHub download layout prepared.
 - [x] Build FFprobe from pinned, unmodified sources and package FFmpeg/compiler/runtime sources, toolchain recipes, patches, and actual configuration/build logs. Bundling was selected by the project owner.
-- [ ] Review and approve the repository contents and release text.
+- [x] Review and approve the repository contents and release text. The project owner authorized publication of 1.0.0.
 - [x] Shared tests (35), native tests (17), and production web build pass for the 1.0.0 source candidate.
 - [x] Build and verify the Windows candidate after preparing the FFprobe source-distribution asset. The 2026-11-20 candidate passed strict TypeScript checks, 52 tests, and packaged-runtime JPEG/date/video checks; publish the matching source asset with it.
 - [x] Verify the final Windows app interactively. The project owner confirmed the 2026-11-20 candidate's interactive check passed.
