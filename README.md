@@ -6,7 +6,7 @@ Put your memories on the map. Add GPS coordinates and restore missing capture da
 
 Photo Pinboard helps with files that have lost their location metadata, including photos whose estimated locations appear only in another photo service's interface. You supply the coordinates or capture date, and the app writes them into supported files.
 
-[Download for Windows](https://github.com/blissfulsaint/photo-pinboard/releases/latest) · [Usage guide](docs/USAGE.md) · [Report an issue](https://github.com/blissfulsaint/photo-pinboard/issues)
+[Open the web app](https://photo-pinboard.vercel.app/) · [Download for Windows](https://github.com/blissfulsaint/photo-pinboard/releases/latest) · [Usage guide](docs/USAGE.md) · [Report an issue](https://github.com/blissfulsaint/photo-pinboard/issues)
 
 ## What it does
 
